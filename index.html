@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>آلة حاسبة مع سجل العمليات</title>
+    <title>حافظة التوريد النقدي وسجل العمليات</title>
     <!-- تحميل Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -18,36 +18,67 @@
             grid-template-columns: repeat(4, 1fr);
         }
         .history-panel {
-            max-height: 200px; /* تحديد ارتفاع للسجل */
-            overflow-y: auto; /* إضافة شريط تمرير عند الامتلاء */
-            direction: ltr; /* لضمان عرض الأرقام والعمليات الرياضية بشكل صحيح من اليسار لليمين */
-            font-size: 0.875rem; /* خط أصغر للسجل */
+            max-height: 100px; /* ارتفاع صغير لسجل العمليات الرياضية */
+            overflow-y: auto; 
+            direction: ltr;
+            font-size: 0.875rem;
             line-height: 1.25rem;
         }
-        /* تلوين شريط التمرير للسجل */
-        .history-panel::-webkit-scrollbar {
-            width: 6px;
+        .cash-input {
+            width: 80px; /* تحديد عرض لخانة عدد الأوراق */
+            text-align: center;
         }
-        .history-panel::-webkit-scrollbar-thumb {
-            background: #d1d5db; /* لون رمادي فاتح */
-            border-radius: 10px;
+        .cash-row {
+            direction: ltr; /* لعرض الأرقام من اليسار لليمين */
         }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
-    <!-- حاوية الآلة الحاسبة الرئيسية -->
-    <div id="calculator-app" class="w-full max-w-md bg-white shadow-2xl rounded-2xl overflow-hidden transform transition duration-500 hover:scale-[1.01]">
+    <!-- حاوية التطبيق الرئيسية -->
+    <div id="app" class="w-full max-w-md bg-white shadow-2xl rounded-2xl overflow-hidden">
         
         <!-- رأس الآلة الحاسبة -->
         <header class="bg-indigo-600 p-3 text-center rounded-t-2xl">
             <h1 class="text-xl font-bold text-white">إسلام الدرديري</h1>
         </header>
 
-        <!-- لوحة سجل العمليات ومسح السجل -->
-        <div class="p-4 bg-gray-100">
+        <!-- لوحة الإحصاء النقدي (Denomination Tally) -->
+        <div class="p-4 bg-gray-100 border-b border-gray-300">
+            <h2 class="text-sm font-bold text-indigo-700 mb-2 border-b-2 border-indigo-400 pb-1">إحصاء التوريد النقدي (Cash Tally)</h2>
+            
+            <!-- شبكة فئات الأوراق النقدية -->
+            <div id="cash-tally-inputs" class="grid grid-cols-2 gap-y-2 gap-x-4">
+                
+                <!-- الفئات (Value | Count | Subtotal) -->
+                <!-- تم اختيار فئات شائعة يمكن تعديلها حسب العملة -->
+                <template id="tally-template">
+                    <div class="flex justify-between items-center cash-row text-gray-700">
+                        <span class="font-medium text-lg w-1/4"></span>
+                        <input type="number" min="0" value="0" data-value="" oninput="cashRegister.tallyCash()" 
+                               class="cash-input bg-white border border-gray-300 rounded-lg p-2 text-xl font-mono focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                        <span class="text-gray-500 w-1/4 text-sm text-right">0</span>
+                    </div>
+                </template>
+                <!-- سيتم ملء هذه الشبكة عبر جافاسكريبت -->
+            </div>
+            
+            <button onclick="cashRegister.clearDenominations()" class="mt-4 w-full bg-gray-300 hover:bg-gray-400 text-sm text-gray-800 font-medium py-2 rounded-lg shadow-md transition duration-150 transform active:scale-95">
+                مسح عدّ الأوراق
+            </button>
+        </div>
+
+        <!-- شاشة إجمالي التوريد النقدي -->
+        <div class="p-4 pt-3 bg-indigo-100 border-t-4 border-indigo-400">
+            <h3 class="text-base font-semibold text-indigo-800">الإجمالي النقدي الكلي</h3>
+            <div id="display-cash-total" class="text-left text-4xl font-extrabold text-indigo-900 h-12 overflow-hidden whitespace-nowrap direction-ltr">0</div>
+        </div>
+
+
+        <!-- لوحة سجل العمليات الرياضية (History) -->
+        <div class="p-4 bg-gray-100 border-t border-gray-300">
             <div class="flex justify-between items-center mb-2 border-b border-gray-300 pb-1">
-                <h2 class="text-xs text-gray-500 font-semibold">سجل العمليات (History)</h2>
+                <h2 class="text-xs text-gray-500 font-semibold">سجل العمليات الرياضية</h2>
                 <button onclick="calculator.clearHistory()" class="bg-gray-300 hover:bg-gray-400 text-xs text-gray-700 font-medium py-1 px-2 rounded-lg shadow-sm transition duration-150 transform active:scale-95">
                     مسح السجل
                 </button>
@@ -57,13 +88,13 @@
             </div>
         </div>
 
-        <!-- شاشة العرض والنتائج -->
-        <div class="p-4 bg-gray-200">
-            <div id="display-input" class="text-left text-2xl font-light text-gray-600 h-8 overflow-hidden whitespace-nowrap">0</div>
-            <div id="display-result" class="text-left text-5xl font-extrabold text-gray-900 mt-1 h-16 overflow-hidden whitespace-nowrap">0</div>
+        <!-- شاشة العرض والنتائج الرئيسية (الآلة الحاسبة) -->
+        <div class="p-4 pt-2 bg-gray-200">
+            <div id="display-input" class="text-left text-xl font-light text-gray-600 h-6 overflow-hidden whitespace-nowrap direction-ltr">0</div>
+            <div id="display-result" class="text-left text-4xl font-extrabold text-gray-900 mt-1 h-12 overflow-hidden whitespace-nowrap direction-ltr">0</div>
         </div>
 
-        <!-- لوحة المفاتيح -->
+        <!-- لوحة المفاتيح (لإدخال الأرقام في الإحصاء النقدي أو العمليات الرياضية) -->
         <div class="calculator-grid p-3 gap-3 bg-white">
             
             <!-- الصف الأول: AC, DEL, %, / -->
@@ -73,7 +104,6 @@
             <button onclick="calculator.deleteLast()" class="bg-gray-400 hover:bg-gray-500 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
                 DEL
             </button>
-            <!-- زر النسبة المئوية الجديد -->
             <button onclick="calculator.choosePercentage()" class="bg-gray-400 hover:bg-gray-500 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
                 %
             </button>
@@ -88,6 +118,7 @@
             <button onclick="calculator.chooseOperation('*')" class="bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
                 &times;
             </button>
+
 
             <!-- الصف الثالث: 4, 5, 6, - -->
             <button onclick="calculator.appendNumber('4')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">4</button>
@@ -115,7 +146,68 @@
     </div>
 
     <script>
-        // كائن يمثل حالة الآلة الحاسبة ومنطقها
+        // ==========================================================
+        // Cash Register Logic (منطق إحصاء النقدية)
+        // ==========================================================
+        const cashRegister = {
+            denominations: [200, 100, 50, 20, 10, 5, 1], // فئات الأوراق النقدية
+            
+            // تهيئة حقول الإدخال عند تحميل الصفحة
+            initTallyInputs() {
+                const container = document.getElementById('cash-tally-inputs');
+                const template = document.getElementById('tally-template');
+                container.innerHTML = ''; // مسح المحتوى الحالي
+                
+                this.denominations.forEach(value => {
+                    const clone = template.content.cloneNode(true);
+                    const row = clone.querySelector('.flex');
+                    const valueSpan = row.querySelector('span:first-child');
+                    const input = row.querySelector('input');
+                    const subtotalSpan = row.querySelector('span:last-child');
+
+                    // تعيين القيمة والفئة
+                    valueSpan.textContent = `فئة ${calculator.formatNumber(value.toString())}:`;
+                    input.setAttribute('data-value', value);
+                    input.id = `input-${value}`;
+                    subtotalSpan.id = `subtotal-${value}`;
+                    
+                    container.appendChild(row);
+                });
+            },
+
+            // حساب الإجمالي الكلي بناءً على المدخلات
+            tallyCash() {
+                let total = 0;
+                this.denominations.forEach(value => {
+                    const inputElement = document.getElementById(`input-${value}`);
+                    const subtotalElement = document.getElementById(`subtotal-${value}`);
+                    
+                    const count = parseInt(inputElement.value) || 0;
+                    const subtotal = count * value;
+                    
+                    // تحديث المجموع الفرعي المرئي
+                    subtotalElement.textContent = calculator.formatNumber(subtotal.toString());
+                    
+                    total += subtotal;
+                });
+
+                // تحديث عرض الإجمالي الكلي
+                document.getElementById('display-cash-total').textContent = calculator.formatNumber(total.toString());
+            },
+
+            // مسح جميع حقول عد الأوراق النقدية
+            clearDenominations() {
+                this.denominations.forEach(value => {
+                    const inputElement = document.getElementById(`input-${value}`);
+                    inputElement.value = 0;
+                });
+                this.tallyCash(); // إعادة حساب الإجمالي لجعله صفرًا
+            }
+        };
+
+        // ==========================================================
+        // Calculator Logic (منطق الآلة الحاسبة القياسية)
+        // ==========================================================
         const calculator = {
             // العناصر المرئية
             displayInput: document.getElementById('display-input'),
@@ -128,13 +220,11 @@
             operation: null,
             history: [],
             
-            // للحفاظ على نتيجة عملية سابقة
             resultReady: false, 
             
-            // دالة تحديث الشاشة والسجل
+            // دالة تحديث الشاشة
             updateDisplay() {
                 this.displayResult.textContent = this.formatNumber(this.currentOperand);
-                // عرض العملية السابقة في شاشة الإدخال
                 if (this.operation != null && this.previousOperand != null) {
                     this.displayInput.textContent = `${this.formatNumber(this.previousOperand)} ${this.operation}`;
                 } else {
@@ -147,26 +237,29 @@
                 this.historyPanel.innerHTML = this.history.map(item => 
                     `<div class="text-right text-gray-700">${item}</div>`
                 ).join('');
-                // التمرير لأسفل تلقائيًا
                 this.historyPanel.scrollTop = this.historyPanel.scrollHeight;
             },
 
             // دالة لتنسيق الأرقام (لإضافة فواصل الألوف)
             formatNumber(numberString) {
-                const [integerPart, decimalPart] = numberString.toString().split('.');
-                // استخدام en-US لضمان تنسيق الأرقام من اليسار لليمين
+                const cleanNumberString = numberString.toString().replace(/,/g, '');
+                if (cleanNumberString === 'Error') return 'Error';
+
+                const [integerPart, decimalPart] = cleanNumberString.split('.');
+                
+                // تنسيق الجزء الصحيح مع فواصل الألوف
                 const formattedInteger = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(integerPart);
                 
                 if (decimalPart != null) {
                     return `${formattedInteger}.${decimalPart}`;
                 }
-                return integerPart.length > 15 ? 'ERROR' : formattedInteger;
+                
+                return formattedInteger;
             },
 
             // دالة لإدخال الأرقام والنقطة العشرية
             appendNumber(number) {
                 if (this.resultReady) {
-                    // إذا كان هناك نتيجة سابقة، ابدأ عملية جديدة
                     this.currentOperand = '0';
                     this.resultReady = false;
                 }
@@ -186,13 +279,13 @@
                 if (this.currentOperand === '0' && this.previousOperand === null) return;
 
                 if (this.previousOperand !== null) {
-                    this.calculate(); // قم بإجراء العملية السابقة قبل تخزين العملية الجديدة
+                    this.calculate();
                 }
                 
                 this.operation = op;
                 this.previousOperand = this.currentOperand;
-                this.currentOperand = '0'; // إعادة تعيين للإدخال الجديد
-                this.resultReady = false; // استعداد لإدخال رقم جديد
+                this.currentOperand = '0';
+                this.resultReady = false;
                 this.updateDisplay();
             },
             
@@ -200,11 +293,9 @@
             choosePercentage() {
                 const current = parseFloat(this.currentOperand);
                 if (isNaN(current)) return;
-                
-                // يقسم الرقم الحالي على 100
                 this.currentOperand = (current / 100).toString();
                 this.updateDisplay();
-                this.resultReady = true; // تعتبر كعملية مكتملة
+                this.resultReady = true;
             },
 
             // دالة إجراء العملية الحسابية
@@ -216,24 +307,21 @@
                 
                 let result;
                 try {
-                    // استخدام eval بطريقة آمنة نسبيًا للعمليات الأساسية
                     const operationString = `${prev} ${this.operation} ${current}`;
                     result = eval(operationString);
                     
-                    // تحويل النتيجة إلى عدد عشري مع تقييد لضمان الدقة
                     if (result.toString().includes('.') && result.toString().length > 15) {
                         result = parseFloat(result.toPrecision(15));
                     }
                     
-                    // إضافة العملية والسجل
-                    const historyEntry = `${this.formatNumber(this.previousOperand)} ${this.operation} ${this.formatNumber(this.currentOperand)} = ${this.formatNumber(result)}`;
+                    const historyEntry = `${this.formatNumber(this.previousOperand)} ${this.operation} ${this.formatNumber(this.currentOperand)} = ${this.formatNumber(result.toString())}`;
                     this.history.push(historyEntry);
                     this.updateHistory();
 
                     this.currentOperand = result.toString();
                     this.operation = null;
                     this.previousOperand = null;
-                    this.resultReady = true; // وضع علامة على أن النتيجة جاهزة
+                    this.resultReady = true;
                     this.updateDisplay();
 
                 } catch (error) {
@@ -246,7 +334,7 @@
                 }
             },
 
-            // دالة المسح الكامل (تمسح الشاشة الحالية فقط)
+            // دالة المسح الكامل للآلة الحاسبة (AC)
             clear() {
                 this.currentOperand = '0';
                 this.previousOperand = null;
@@ -272,25 +360,34 @@
             },
         };
 
-        // تهيئة العرض الأولي
-        calculator.updateDisplay();
-        
-        // دعم الإدخال من لوحة المفاتيح
-        document.addEventListener('keydown', (e) => {
-            const key = e.key;
-            if ((key >= '0' && key <= '9') || key === '.') {
-                calculator.appendNumber(key);
-            } else if (key === '+' || key === '-' || key === '*' || key === '/') {
-                calculator.chooseOperation(key);
-            } else if (key === 'Enter' || key === '=') {
-                e.preventDefault(); // منع السلوك الافتراضي (مثل إرسال نموذج)
-                calculator.calculate();
-            } else if (key === 'Backspace') {
-                calculator.deleteLast();
-            } else if (key === 'Escape') {
-                calculator.clear();
-            }
-        });
+        // ==========================================================
+        // Initialisation (التهيئة عند التحميل)
+        // ==========================================================
+        window.onload = function() {
+            // تهيئة واجهة إحصاء النقدية
+            cashRegister.initTallyInputs();
+            cashRegister.tallyCash(); // حساب الإجمالي الأولي (صفر)
+
+            // تهيئة الآلة الحاسبة
+            calculator.updateDisplay();
+            
+            // دعم الإدخال من لوحة المفاتيح للآلة الحاسبة القياسية
+            document.addEventListener('keydown', (e) => {
+                const key = e.key;
+                if ((key >= '0' && key <= '9') || key === '.') {
+                    calculator.appendNumber(key);
+                } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+                    calculator.chooseOperation(key);
+                } else if (key === 'Enter' || key === '=') {
+                    e.preventDefault();
+                    calculator.calculate();
+                } else if (key === 'Backspace') {
+                    calculator.deleteLast();
+                } else if (key === 'Escape') {
+                    calculator.clear();
+                }
+            });
+        }
     </script>
 </body>
 </html>
