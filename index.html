@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آلة حاسبة مع سجل العمليات</title>
+    <!-- تحميل Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* خط إنتر لجمالية الخط */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* خلفية فاتحة لطيفة (Gray-100) */
+        }
+        /* تعديل لعرض الآلة الحاسبة بشكل جيد على الهواتف */
+        .calculator-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        .history-panel {
+            max-height: 200px; /* تحديد ارتفاع للسجل */
+            overflow-y: auto; /* إضافة شريط تمرير عند الامتلاء */
+            direction: ltr; /* لضمان عرض الأرقام والعمليات الرياضية بشكل صحيح من اليسار لليمين */
+            font-size: 0.875rem; /* خط أصغر للسجل */
+            line-height: 1.25rem;
+        }
+        /* تلوين شريط التمرير للسجل */
+        .history-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .history-panel::-webkit-scrollbar-thumb {
+            background: #d1d5db; /* لون رمادي فاتح */
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- حاوية الآلة الحاسبة الرئيسية -->
+    <div id="calculator-app" class="w-full max-w-md bg-white shadow-2xl rounded-2xl overflow-hidden transform transition duration-500 hover:scale-[1.01]">
+        
+        <!-- رأس الآلة الحاسبة -->
+        <header class="bg-indigo-600 p-3 text-center rounded-t-2xl">
+            <h1 class="text-xl font-bold text-white">إسلام الدرديري</h1>
+        </header>
+
+        <!-- لوحة سجل العمليات ومسح السجل -->
+        <div class="p-4 bg-gray-100">
+            <div class="flex justify-between items-center mb-2 border-b border-gray-300 pb-1">
+                <h2 class="text-xs text-gray-500 font-semibold">سجل العمليات (History)</h2>
+                <button onclick="calculator.clearHistory()" class="bg-gray-300 hover:bg-gray-400 text-xs text-gray-700 font-medium py-1 px-2 rounded-lg shadow-sm transition duration-150 transform active:scale-95">
+                    مسح السجل
+                </button>
+            </div>
+            <div id="history-panel" class="history-panel text-gray-700 space-y-1">
+                <!-- سيتم عرض السجل هنا -->
+            </div>
+        </div>
+
+        <!-- شاشة العرض والنتائج -->
+        <div class="p-4 bg-gray-200">
+            <div id="display-input" class="text-left text-2xl font-light text-gray-600 h-8 overflow-hidden whitespace-nowrap">0</div>
+            <div id="display-result" class="text-left text-5xl font-extrabold text-gray-900 mt-1 h-16 overflow-hidden whitespace-nowrap">0</div>
+        </div>
+
+        <!-- لوحة المفاتيح -->
+        <div class="calculator-grid p-3 gap-3 bg-white">
+            
+            <!-- الصف الأول: AC, DEL, %, / -->
+            <button onclick="calculator.clear()" class="bg-red-500 hover:bg-red-600 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
+                AC
+            </button>
+            <button onclick="calculator.deleteLast()" class="bg-gray-400 hover:bg-gray-500 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
+                DEL
+            </button>
+            <!-- زر النسبة المئوية الجديد -->
+            <button onclick="calculator.choosePercentage()" class="bg-gray-400 hover:bg-gray-500 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
+                %
+            </button>
+            <button onclick="calculator.chooseOperation('/')" class="bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
+                &divide;
+            </button>
+            
+            <!-- الصف الثاني: 7, 8, 9, * -->
+            <button onclick="calculator.appendNumber('7')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">7</button>
+            <button onclick="calculator.appendNumber('8')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">8</button>
+            <button onclick="calculator.appendNumber('9')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">9</button>
+            <button onclick="calculator.chooseOperation('*')" class="bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
+                &times;
+            </button>
+
+            <!-- الصف الثالث: 4, 5, 6, - -->
+            <button onclick="calculator.appendNumber('4')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">4</button>
+            <button onclick="calculator.appendNumber('5')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">5</button>
+            <button onclick="calculator.appendNumber('6')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">6</button>
+            <button onclick="calculator.chooseOperation('-')" class="bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
+                &minus;
+            </button>
+
+            <!-- الصف الرابع: 1, 2, 3, + -->
+            <button onclick="calculator.appendNumber('1')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">1</button>
+            <button onclick="calculator.appendNumber('2')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">2</button>
+            <button onclick="calculator.appendNumber('3')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">3</button>
+            <button onclick="calculator.chooseOperation('+')" class="bg-indigo-500 hover:bg-indigo-600 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
+                +
+            </button>
+
+            <!-- الصف الخامس: 0 (2 cols), ., = -->
+            <button onclick="calculator.appendNumber('0')" class="col-span-2 bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">0</button>
+            <button onclick="calculator.appendNumber('.')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">.</button>
+            <button onclick="calculator.calculate()" class="bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-xl text-2xl font-semibold shadow-md active:shadow-lg transition duration-150 transform active:scale-95">
+                =
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // كائن يمثل حالة الآلة الحاسبة ومنطقها
+        const calculator = {
+            // العناصر المرئية
+            displayInput: document.getElementById('display-input'),
+            displayResult: document.getElementById('display-result'),
+            historyPanel: document.getElementById('history-panel'),
+
+            // حالة الآلة الحاسبة
+            currentOperand: '0',
+            previousOperand: null,
+            operation: null,
+            history: [],
+            
+            // للحفاظ على نتيجة عملية سابقة
+            resultReady: false, 
+            
+            // دالة تحديث الشاشة والسجل
+            updateDisplay() {
+                this.displayResult.textContent = this.formatNumber(this.currentOperand);
+                // عرض العملية السابقة في شاشة الإدخال
+                if (this.operation != null && this.previousOperand != null) {
+                    this.displayInput.textContent = `${this.formatNumber(this.previousOperand)} ${this.operation}`;
+                } else {
+                    this.displayInput.textContent = '';
+                }
+            },
+
+            // دالة لتحديث السجل المرئي
+            updateHistory() {
+                this.historyPanel.innerHTML = this.history.map(item => 
+                    `<div class="text-right text-gray-700">${item}</div>`
+                ).join('');
+                // التمرير لأسفل تلقائيًا
+                this.historyPanel.scrollTop = this.historyPanel.scrollHeight;
+            },
+
+            // دالة لتنسيق الأرقام (لإضافة فواصل الألوف)
+            formatNumber(numberString) {
+                const [integerPart, decimalPart] = numberString.toString().split('.');
+                // استخدام en-US لضمان تنسيق الأرقام من اليسار لليمين
+                const formattedInteger = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(integerPart);
+                
+                if (decimalPart != null) {
+                    return `${formattedInteger}.${decimalPart}`;
+                }
+                return integerPart.length > 15 ? 'ERROR' : formattedInteger;
+            },
+
+            // دالة لإدخال الأرقام والنقطة العشرية
+            appendNumber(number) {
+                if (this.resultReady) {
+                    // إذا كان هناك نتيجة سابقة، ابدأ عملية جديدة
+                    this.currentOperand = '0';
+                    this.resultReady = false;
+                }
+                
+                if (number === '.' && this.currentOperand.includes('.')) return;
+                
+                if (this.currentOperand === '0' && number !== '.') {
+                    this.currentOperand = number.toString();
+                } else {
+                    this.currentOperand += number.toString();
+                }
+                this.updateDisplay();
+            },
+
+            // دالة اختيار العملية الرياضية
+            chooseOperation(op) {
+                if (this.currentOperand === '0' && this.previousOperand === null) return;
+
+                if (this.previousOperand !== null) {
+                    this.calculate(); // قم بإجراء العملية السابقة قبل تخزين العملية الجديدة
+                }
+                
+                this.operation = op;
+                this.previousOperand = this.currentOperand;
+                this.currentOperand = '0'; // إعادة تعيين للإدخال الجديد
+                this.resultReady = false; // استعداد لإدخال رقم جديد
+                this.updateDisplay();
+            },
+            
+            // دالة لحساب النسبة المئوية (X / 100)
+            choosePercentage() {
+                const current = parseFloat(this.currentOperand);
+                if (isNaN(current)) return;
+                
+                // يقسم الرقم الحالي على 100
+                this.currentOperand = (current / 100).toString();
+                this.updateDisplay();
+                this.resultReady = true; // تعتبر كعملية مكتملة
+            },
+
+            // دالة إجراء العملية الحسابية
+            calculate() {
+                const prev = parseFloat(this.previousOperand);
+                const current = parseFloat(this.currentOperand);
+                
+                if (isNaN(prev) || isNaN(current) || this.operation === null) return;
+                
+                let result;
+                try {
+                    // استخدام eval بطريقة آمنة نسبيًا للعمليات الأساسية
+                    const operationString = `${prev} ${this.operation} ${current}`;
+                    result = eval(operationString);
+                    
+                    // تحويل النتيجة إلى عدد عشري مع تقييد لضمان الدقة
+                    if (result.toString().includes('.') && result.toString().length > 15) {
+                        result = parseFloat(result.toPrecision(15));
+                    }
+                    
+                    // إضافة العملية والسجل
+                    const historyEntry = `${this.formatNumber(this.previousOperand)} ${this.operation} ${this.formatNumber(this.currentOperand)} = ${this.formatNumber(result)}`;
+                    this.history.push(historyEntry);
+                    this.updateHistory();
+
+                    this.currentOperand = result.toString();
+                    this.operation = null;
+                    this.previousOperand = null;
+                    this.resultReady = true; // وضع علامة على أن النتيجة جاهزة
+                    this.updateDisplay();
+
+                } catch (error) {
+                    this.currentOperand = 'Error';
+                    this.operation = null;
+                    this.previousOperand = null;
+                    this.resultReady = true;
+                    this.updateDisplay();
+                    console.error("Calculation Error:", error);
+                }
+            },
+
+            // دالة المسح الكامل (تمسح الشاشة الحالية فقط)
+            clear() {
+                this.currentOperand = '0';
+                this.previousOperand = null;
+                this.operation = null;
+                this.resultReady = false;
+                this.updateDisplay();
+            },
+
+            // دالة مسح سجل العمليات فقط
+            clearHistory() {
+                this.history = [];
+                this.updateHistory();
+            },
+
+            // دالة حذف آخر رمز
+            deleteLast() {
+                if (this.currentOperand.length === 1 || this.currentOperand === 'Error') {
+                    this.currentOperand = '0';
+                } else {
+                    this.currentOperand = this.currentOperand.slice(0, -1);
+                }
+                this.updateDisplay();
+            },
+        };
+
+        // تهيئة العرض الأولي
+        calculator.updateDisplay();
+        
+        // دعم الإدخال من لوحة المفاتيح
+        document.addEventListener('keydown', (e) => {
+            const key = e.key;
+            if ((key >= '0' && key <= '9') || key === '.') {
+                calculator.appendNumber(key);
+            } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+                calculator.chooseOperation(key);
+            } else if (key === 'Enter' || key === '=') {
+                e.preventDefault(); // منع السلوك الافتراضي (مثل إرسال نموذج)
+                calculator.calculate();
+            } else if (key === 'Backspace') {
+                calculator.deleteLast();
+            } else if (key === 'Escape') {
+                calculator.clear();
+            }
+        });
+    </script>
+</body>
+</html>
